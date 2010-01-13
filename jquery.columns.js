@@ -1,0 +1,236 @@
+// Column layout module
+// Kenneth Kufluk 2010 Pirata
+// Requires jQuery
+
+// jQuery Plugin starts here
+;(function($) {
+	jQuery.fn.columns = function(options) {
+	    // Define default settings.
+	    var options = $.extend({
+	        paging:false,			/* paging makes sense for columns, to avoid the scroll-back-to-top effect */
+	        minWidth:'40em',		/* we want columns to appear and disappear as required, not be a fixed num */
+	        maxCols:10				/* to a limit */
+	        /* planned interactions:  up/down is paging, click last column to page down, first column up */
+	        /* option: page left/right instead of up/down? */
+	    },options);
+	    
+	    var redrawWhenReady = function() {
+	    	clearTimeout(this.redrawTimer);
+	    	var el=this;
+	    	this.redrawTimer = setTimeout(function() {
+	    		el.redraw(true);
+	    	}, 100);
+	    }
+	    
+	    // Adds the column divs to the container
+	  	var addColumns = function($el, columnCount) {
+	  		//add/remove divs as required
+	    	var $colEls = $('.col',$el);
+	    	if ($colEls.length==0) {
+	    		$el.wrapInner('<div class="col"></div>');
+	    		$colEls = $('.col', $el);
+	    		//move the images out
+	    		$('img',$el).insertBefore($colEls);
+				$('img',$el).wrap('<div class="img"></div>');
+	    	}
+			$elCol = $($('.col',$el)[0]);
+	    	if ($colEls.length>columnCount) {
+				for (var i=$colEls.length;i>columnCount;i--) {
+					$elCol.remove();
+					$elCol = $($('.col',$el)[0]);
+				}	    		
+	    	}
+	    	if ($colEls.length<columnCount) {
+				for (var i=$colEls.length;i<columnCount;i++) {
+					$elCol.clone(true).insertAfter($elCol);
+				}
+	    	}
+	  	}
+	  	
+	  	// returns a height, rounded to an integer multiple of the line height
+	  	var heightAsRows = function(height, lineheight, roundup) {
+	  		var roundFunc = (roundup)?Math.ceil:Math.floor;
+	  		return roundFunc(height/lineheight) * lineheight;
+	  	}
+	    
+	    var pages = [];
+	    var offsetTopCache = [];
+	    var currentPage = 0;
+	    var redraw = function(animate) {
+	    	$el = $(this);
+	    	
+	    	//count the number of columns on a page
+			var columnCount = Math.ceil(($el.width()/options.minWidthPX));
+			columnCount = Math.min(columnCount, options.maxCols);
+			
+			//set properties of the column container
+    		var lineHeight = parseFloat($('p',this).css('line-height'));
+   	    	$el.css('position','relative');
+	    	$el.css('overflow','hidden');
+			// the height of the container is the window height, minus our top offset, minus some footer
+    		var availableHeight = Math.floor($(window).height() - $el.offset().top - 35);  //TODO - how to work out where to place the footer?  Maybe look at offsettop of the next element?
+			// and then rounded to an integer multiple of the line height.
+    		var pageHeight = heightAsRows(availableHeight, lineHeight, false);
+    		$el.css('height', pageHeight+'px');
+	    	
+			//create a page if needed
+			if (pages.length==0) {
+				$el.wrapInner('<div class="col-page"></div>');
+				var $page = $('.col-page',$el);
+				pages[currentPage] = $page;
+				offsetTopCache[currentPage] = 0;
+			}
+			
+				//add the columns
+		    	addColumns(pages[currentPage], columnCount);
+		    	
+		    	// Set the percentage width of each column (they MUST be identical)
+		    	var pcColWidth = 100/columnCount;
+		    	$('.col',$el).css('width', (pcColWidth-2)+'%');
+	
+				// Make interstitial heights a round number of multiples of the line-height
+				$('.interstitial', this).each(function(colindex){
+					var interstitialHeight = heightAsRows($(this).height(), lineHeight, true);
+					interstitialHeight-=2; // border;
+					$(this).height(interstitialHeight+'px');
+				});
+	
+				// Position the images
+				$('.img',$el).each(function() {
+					$(this).css('position','absolute');
+					$(this).css('z-index','1000');
+					$(this).css('right','0');
+					$(this).css('background','white');
+					var colspan = columnCount - 1;
+					if (colspan<1) colspan=1;
+					if (colspan>2) colspan=2;
+					$('img', this).width('100%');
+					$(this).width((pcColWidth*colspan+1)+'%');
+				});
+	
+
+			// TODO:  We need a page offset for the currently-viewed page
+			// When we scroll to the next page, let's pass a page number, but also a offsettop
+			// So when we subsequently resize page two, the first line of the page stays the same.
+			// We are only storing the page number to enable you to go back a page (though there'd be an issue of trying to get back to a previous offset (going back twice), so we need to store an array as we progress forward)
+			// When going forward, we create pages.  When going back, we merely display pages.
+
+			var offsetTop = 0;
+	    	//scroll each column accordingly
+	    	var scrollCols = function(animate) {
+	    		// uses lineHeight, columnCount, offsetTopCache, pages, currentPage, offsetTop
+		    	offsetTop = offsetTopCache[currentPage];
+//		    	console.log('offsettop',offsetTop);
+		    	var offsetLeft = 0;
+		    	$('.col', pages[currentPage]).each(function(index){
+	
+					if (currentPage==0) {
+						//offset the top of each column based on images at the top
+						var equivalentLines = heightAsRows($('.img img',$el).height(), lineHeight, true);
+						var colspan = columnCount - 1;
+						if (colspan<1) colspan=1;
+						if (colspan>2) colspan=2;
+						if (columnCount-index<=colspan) offsetTop -= equivalentLines;
+						$('.img',$el).css('height',equivalentLines+'px');
+					}
+						
+		    		$(this).css('left', offsetLeft+'%');
+		    		$(this).stop();
+	
+		    		if (animate) $(this).animate({top: '-'+offsetTop+'px'},500);
+		    		else  $(this).css('top','-'+offsetTop+'px');
+		    		offsetLeft += pcColWidth;
+		    		offsetTop += pageHeight;
+		    	});
+	    	}
+	    	scrollCols(animate);
+
+	    	
+
+    		//count the number of pages
+ 		    var paging = function() {
+		    	//PAGING
+				// remove existing actions
+				$('.col-up, .col-down', $el).unbind('mouseenter').unbind('click').removeClass('col-up').removeClass('col-down');
+	
+		   		var pageTotalHeight = $('.col',$el).height();
+				if (pageTotalHeight>offsetTop) {			
+					// on last column click
+					// scroll the columns up
+					$('.col:last', pages[currentPage]).addClass('col-down');
+				}
+				
+				if (currentPage>0) {
+					// on first column click, scroll them down
+					$('.col:first', pages[currentPage]).addClass('col-up');
+				}
+				
+				//bind events if applicable
+				// actual paging operations
+				$('.col-down', $el).click(function() {
+					// add page
+					pages[currentPage].clone(true).insertAfter(pages[currentPage]);
+					//hide old page
+					pages[currentPage].animate( { left:'-'+$(window).width() }, 500, "linear", function() {
+						$(this).hide();
+					});
+					currentPage++;
+					var $page = $('.col-page:eq('+(currentPage)+')',$el);
+					pages[currentPage] = $page;
+					$('.img', pages[currentPage]).remove();
+					// show new
+					pages[currentPage].css('left',$(window).width());
+					pages[currentPage].animate( { left:0 }, 500, "linear" );
+					// add to cache
+					offsetTopCache[currentPage] = offsetTop;
+					
+					$el[0].redraw(false);
+				});
+				$('.col-up', $el).click(function() {
+					//hide old page
+					pages[currentPage].animate( { left:$(window).width() }, 500, "linear", function() {
+						$(this).remove();
+					});
+					currentPage--;
+					// show new
+					pages[currentPage].show();
+					pages[currentPage].css('left','-'+$(window).width());
+					pages[currentPage].animate( { left:0 }, 500, "linear" );
+					
+					$el[0].redraw(false);
+				});
+//				console.log('currentPage',currentPage);
+				//TODO: ADD EXTRA CONDITION - when only one column, no paging.	    	
+		    }
+
+			paging();
+
+	    }
+
+	    return this.each(function() {
+
+			// Convert min/max widths to pixels by creating a temporary div.
+			var $tempEl=$('<div></div>');
+			$('body').append($tempEl);
+			$tempEl.width(options.minWidth);
+			options.minWidthPX=$tempEl.width();
+			$tempEl.remove();
+    		
+			// on container resize
+			var el = this;
+	    	$(window).resize(function() {
+	    		el.redrawWhenReady();
+	    	});
+	    	this.redraw = redraw;
+	    	this.redrawWhenReady = redrawWhenReady;
+			// draw
+	    	this.redraw(false);
+
+	    });
+	}
+})(jQuery);
+
+// initialize
+$(document).ready(function() {
+	$('.columns').columns({paging:true});
+});
