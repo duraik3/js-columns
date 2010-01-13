@@ -1,0 +1,19 @@
+- When only one column is shown, just make a long scrolling page (eg, to suit iPhone)
+
+- When image is shown, there should be min 2-lines of text underneath.  If less, reduce the col-span of the image
+
+- Add caption to large image
+
+- Add interstitials:  quotations and images between paragraphs (with captions?)
+
+- Add calculated percentage gaps between columns
+
+- Fix paging bug (last page not reachable?)
+
+- Add keyed paging and mouse roll
+
+- Sometimes hover doesn't work (Chrome)
+
+- Correctly allow for header and footer spacing
+
+- Remove the need for a stylesheet
