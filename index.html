@@ -9,7 +9,6 @@
     <!-- http://code.google.com/js-columns/ -->
     <!-- http://kenneth.kufluk.com/ -->
     <!-- Released under license.  Check accompanying documentation. -->
-
 </head>
 <body>
 	<div id="wrapper">
@@ -64,6 +63,14 @@
 	// ]]>
 	</script>
 	<script type="text/javascript" src="jquery.columns.js"></script>
+	<script type="text/javascript">
+	// <![CDATA[
+        // initialize
+        $(document).ready(function() {
+        	$('.columns').columns({paging:true});
+        });
+	// ]]>
+	</script>
 	
 </body>
 </html>
