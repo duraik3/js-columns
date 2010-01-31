@@ -389,7 +389,7 @@
 }
 
 .col-up:hover, .col-down:hover { 
-	background-color:rgb(220,220,220);
+	background-color:#F5F5F5;
 	cursor:pointer;
 }
 
