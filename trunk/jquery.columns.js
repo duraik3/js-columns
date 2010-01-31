@@ -1,9 +1,21 @@
+/*
 // Column layout module
-// Kenneth Kufluk 2010 Pirata
-// Requires jQuery
+// Requires jQuery 1.3.2
+// http://code.google.com/js-columns/
+
+js-columns is free software under the MIT License.
+
+Copyright (c) 2010 Kenneth Kufluk
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
 
 // jQuery Plugin starts here
-;(function($) {
+(function($) {
 	jQuery.fn.columns = function(options) {
 	    // Define default settings.
 	    var options = $.extend({
@@ -108,18 +120,22 @@
 	    	$('.col',$el).css('width', (pcColWidth-2)+'%');
 
 			// Make interstitial heights a round number of multiples of the line-height
+			/*
 			$('.interstitial', this).each(function(colindex){
 				var interstitialHeight = heightAsRows($(this).height(), lineHeight, true);
 				interstitialHeight-=2; // border;
 				$(this).height(interstitialHeight+'px');
 			});
+			*/
 
 			// Position the large image(s)
 			$('.img',$el).each(function() {
                 if (columnCount>1) {
-    				$(this).css('position','absolute');
-    				$(this).css('z-index','1000');
-    				$(this).css('right','0');
+    				$(this).css({
+    				    position:'absolute',
+    				    zIndex:1000,
+    				    right:0
+    				});
 				} else {
     				$(this).css('position','static');
 				}
@@ -164,14 +180,17 @@
 	
 		   		var pageTotalHeight = $('.col',$el).height();
 		   		var imgColspan = getImgColspan(columnCount);
-		   		var imageContributionToOffsetTop = imgColspan * heightAsRows($('.img img',$el).height(), lineHeight, true);
+		   		var imgHeight = heightAsRows($('.img img',$el).height(), lineHeight, true);
+		   		var imageContributionToOffsetTop = imgColspan * imgHeight;
 		   		pageTotalHeight += imageContributionToOffsetTop;
 				if (pageTotalHeight>offsetTop && columnCount>1) {			
 					// on last column click
 					// scroll the columns up
-					$('.col:last', pages[currentPage]).addClass('col-down');
+					var lastColNo = columnCount - 1;
+    			    //deal with the case where the image fills up the column completely
+					if (currentPage==0 && imgHeight>=pageHeight) lastColNo = lastColNo - imgColspan;
+					$('.col:eq('+lastColNo+')', pages[currentPage]).addClass('col-down');
 				}
-			    //TODO: rather odd case where the image fills up the column completely
 				
 				if (currentPage>0) {
 					// on first column click, scroll them down
@@ -234,6 +253,9 @@
 			// on container resize
 			var el = this;
 	    	$(window).resize(function() {
+	    		el.redrawWhenReady();
+	    	});
+	    	$('img', this).load(function() {
 	    		el.redrawWhenReady();
 	    	});
 	    	this.redraw = redraw;
